@@ -12,6 +12,12 @@ articles language.
 #include <ctype.h>
 #include <stdbool.h>
 #include <string.h>
+#include <omp.h>
+
+#define LARGENUM 2147483647
+#pragma omp declare reduction(minabs : int :              \
+    omp_out = abs(omp_in) > omp_out ? omp_out : abs(omp_in)) \
+    initializer (omp_priv=LARGENUM)
 
 /*********************************************************
 This section is used to declare the methods that shall be
@@ -20,7 +26,8 @@ used throughout the program.
 
 void processFile();
 void checkMatches();
-void createCSV(int **matchArr, int mainArrLen, int compareArrLen);
+//void createCSV(int **matchArr, int mainArrLen, int compareArrLen);
+void createCSV(int *matchArr, int mainArrLen, int compareArrLen);
 
 /*********************************************************
 This is the main function of the code, it is used to
@@ -38,6 +45,7 @@ int main()
     //DECLARE VARS
     char mainFile[100];
     char compareFile[100];
+    omp_set_num_threads(4);
 
     //FLUSH INPUT AND READ FILE NAME
     fflush(stdin);
@@ -162,33 +170,36 @@ complexity.
 void checkMatches(char *mainBuff, int mainArrLen, char *compareBuff, int compareArrLen)
 {
     //DECLARE VARS
-    int **matchArr = {0};
-    int i = 0, j = 0;
+    int *matchArr = {0};
+    int i = 0, j = 0, k = 0;
 
     //ALLOCATE MEMORY FOR COUNT
-    matchArr = realloc(matchArr, sizeof(int*) * mainArrLen * 2);
+    matchArr = realloc(matchArr, sizeof(int*) * mainArrLen * compareArrLen * 2);
 
+    //#pragma omp parallel for private(j)
+    //#pragma omp parallel for reduction(+: matchArr[:mainArrLen * compareArrLen * 2]) private(j)
     for (i = 0; i < compareArrLen + 1; i++)
     {
-        matchArr[i] = malloc(sizeof(int) * mainArrLen * 2);
+        //#pragma omp parallel for private(j) reduction(+: matchArr[0:mainArrLen][0:compareArrLen])
+        //#pragma omp parallel for reduction(+: matchArr[0:mainArrLen * compareArrLen * 2])
         for (j = 0; j < mainArrLen + 1; j++)
         {
             if (i == 0 || j == 0)
             {
-                matchArr[i][j] = 0;
+                matchArr[k] = 0;
             } else
             {
                 if (compareBuff[i-1] == mainBuff[j-1] || compareBuff[i-1] == '?' || mainBuff[j-1] == '?')
                 {
-                    matchArr[i][j] = matchArr[i-1][j-1] + 1;
+                    matchArr[k] = matchArr[k-(mainArrLen+1)-1] + 1;
                 } else
                 {
                     //CHECK LEFT
-                    int leftSide =  matchArr[i-1][j] - 2;
+                    int leftSide =  matchArr[k-(mainArrLen+1)] - 2;
                     //CHECK UP
-                    int upSide =  matchArr[i][j-1] - 2;
+                    int upSide =  matchArr[k-1] - 2;
                     //CHECK UP LEFT
-                    int upLeftSide = matchArr[i-1][j-1] - 1;
+                    int upLeftSide = matchArr[k-(mainArrLen+1)-1] - 1;
 
                     if (leftSide > 0 || upSide > 0 || upLeftSide > 0)
                     {
@@ -196,27 +207,31 @@ void checkMatches(char *mainBuff, int mainArrLen, char *compareBuff, int compare
                         {
                             if (leftSide > upLeftSide)
                             {
-                                matchArr[i][j] = leftSide;
+                                matchArr[k] = leftSide;
                             } else
                             {
-                                matchArr[i][j] = upLeftSide;
+                                matchArr[k] = upLeftSide;
                             }
                         } else if (upSide > upLeftSide)
                         {
-                            matchArr[i][j] = upSide;
+                            matchArr[k] = upSide;
                         } else
                         {
-                            matchArr[i][j] = upLeftSide;
+                            matchArr[k] = upLeftSide;
                         }
                     } else
                     {
-                        matchArr[i][j] = 0;
+                        matchArr[k] = 0;
                     }
                 }
             }
+            k++;
         }
     }
 
+    for(i = 0; i < (mainArrLen+1)*(compareArrLen+1); i++){
+        printf("%d",matchArr[i]);
+    }
 
     createCSV(matchArr, mainArrLen, compareArrLen);
 
@@ -233,8 +248,8 @@ to a given file.
 @parameter genComplexity: The article complexity
 @return: none
 *********************************************************/
-
-void createCSV(int **matchArr, int mainArrLen, int compareArrLen)
+//void createCSV(int **matchArr, int mainArrLen, int compareArrLen)
+void createCSV(int *matchArr, int mainArrLen, int compareArrLen)
 {
     //DECLARE VARS
     FILE *filep;
@@ -248,7 +263,7 @@ void createCSV(int **matchArr, int mainArrLen, int compareArrLen)
     {
         for (j = 0; j < compareArrLen +1; j++)
         {
-            fprintf(filep,"%d,", matchArr[j][i]);
+            fprintf(filep,"%d,", matchArr[i+(j*(mainArrLen+1))]);
         }
         fprintf(filep,"\n");
     }
@@ -259,99 +274,3 @@ void createCSV(int **matchArr, int mainArrLen, int compareArrLen)
     //LET USER KNOW PROGRAM IS DONE
     printf("file created \n");
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//
-//    for (i = 0; i < mainArrLen + 1; i++)
-//    {
-//        for (j = 0; j < compareArrLen + 1; j++)
-//        {
-//            matchArr[j] = malloc(sizeof(int) * mainArrLen * 2);
-//            if (i == 0)
-//            {
-//                matchArr[j][i] = 0;
-//            } else
-//            {
-//                if (j == 0)
-//                {
-//                    matchArr[j][i] = 0;
-//                } else
-//                {
-//                    //IF MATCH INCREMENT FROM TOP LEFT
-//                    //printf("%c %c \n", compareBuff[j-1], mainBuff[i-1]);
-//                    if (compareBuff[j-1] == mainBuff[i-1] || compareBuff[j-1] == '?' || mainBuff[j-1] == '?')
-//                    {
-//                        matchArr[j][i] = matchArr[j-1][i-1] + 1;
-//                        printf("%d %d %d %d\n",j,i, matchArr[j][i],matchArr[j-1][i-1]);
-//                    } else
-//                    {
-//                        //CHECK LEFT
-//                        int leftSide =  matchArr[j-1][i] - 2;
-//                        //CHECK UP
-//                        int upSide =  matchArr[j][i-1] - 2;
-//                        //CHECK UP LEFT
-//                        int upLeftSide = matchArr[j-1][i-1] - 1;
-//
-//                        if (leftSide > 0 || upSide > 0 || upLeftSide > 0)
-//                        {
-//                            if (leftSide > upSide)
-//                            {
-//                                if (leftSide > upLeftSide)
-//                                {
-//                                    matchArr[j][i] = leftSide;
-//                                } else
-//                                {
-//                                    matchArr[j][i] = upLeftSide;
-//                                }
-//                            } else if (upSide > upLeftSide)
-//                            {
-//                                matchArr[j][i] = upSide;
-//                            } else
-//                            {
-//                                matchArr[j][i] = upLeftSide;
-//                            }
-//                        } else
-//                        {
-//                            matchArr[j][i] = 0;
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
