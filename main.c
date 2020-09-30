@@ -4,7 +4,7 @@ and processes it to find the overall complexity of the
 articles language.
 
 @author: Collin Beaudoin
-@version: September 2020
+@version: October 2020
 *********************************************************/
 
 #include <stdio.h>
@@ -13,6 +13,7 @@ articles language.
 #include <stdbool.h>
 #include <string.h>
 #include <omp.h>
+#include <time.h>
 
 /*********************************************************
 This section is used to declare the methods that shall be
@@ -170,6 +171,9 @@ void checkMatches(char *mainBuff, int mainArrLen, char *compareBuff, int compare
     //ALLOCATE MEMORY FOR COUNT
     matchArr = realloc(matchArr, sizeof(int*) * mainArrLen * compareArrLen * 2);
 
+    struct timespec begin, end;
+    clock_gettime(CLOCK_REALTIME, &begin);
+
     for (i = 0; i < mainArrLen + 1; i++)
     {
         k = i;
@@ -281,6 +285,13 @@ void checkMatches(char *mainBuff, int mainArrLen, char *compareBuff, int compare
             k--;
         }
     }
+
+    clock_gettime(CLOCK_REALTIME, &end);
+    long seconds = end.tv_sec - begin.tv_sec;
+    long nanoseconds = end.tv_nsec - begin.tv_nsec;
+    double elapsed = seconds + nanoseconds*1e-9;
+
+    printf("time taken %f\n",elapsed);
 
     createCSV(matchArr, mainArrLen, compareArrLen);
 
