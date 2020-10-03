@@ -185,7 +185,7 @@ void checkMatches(char *mainBuff, int mainArrLen, char *compareBuff, int compare
             upUntil = compareArrLen + 1;
         }
 
-        #pragma omp parallel for private(j) schedule(dynamic,1)
+        #pragma omp parallel for private(j)
         for (j = 0; j < upUntil; j++)
         {
             if (k == 0)
