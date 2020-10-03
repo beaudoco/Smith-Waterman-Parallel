@@ -245,7 +245,7 @@ void checkMatches(char *mainBuff, int mainArrLen, char *compareBuff, int compare
         k = mainArrLen;
         m = i;
 
-        #pragma omp parallel for private(j) schedule(dynamic,1)
+        #pragma omp parallel for private(j)
         for (j = i; j < compareArrLen + 1; j++)
         {
                 if (compareBuff[m - 1] == mainBuff[k-1] || compareBuff[m - 1] == '?' || mainBuff[m-1] == '?')
