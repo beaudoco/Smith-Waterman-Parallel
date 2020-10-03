@@ -40,7 +40,7 @@ int main()
     //DECLARE VARS
     char mainFile[100];
     char compareFile[100];
-    omp_set_num_threads(4);
+    omp_set_num_threads(6);
 
     //FLUSH INPUT AND READ FILE NAME
     fflush(stdin);
