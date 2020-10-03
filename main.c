@@ -185,7 +185,7 @@ void checkMatches(char *mainBuff, int mainArrLen, char *compareBuff, int compare
             upUntil = compareArrLen + 1;
         }
 
-        #pragma omp parallel for private(j)
+        #pragma omp parallel for private(j) schedule(dynamic,1)
         for (j = 0; j < upUntil; j++)
         {
             if (k == 0)
@@ -233,9 +233,9 @@ void checkMatches(char *mainBuff, int mainArrLen, char *compareBuff, int compare
                 }
             }
 
-            #pragma omp atomic
+            //#pragma omp atomic
             m++;
-            #pragma omp atomic
+            //#pragma omp atomic
             k--;
         }
     }
@@ -245,7 +245,7 @@ void checkMatches(char *mainBuff, int mainArrLen, char *compareBuff, int compare
         k = mainArrLen;
         m = i;
 
-        #pragma omp parallel for private(j)
+        #pragma omp parallel for private(j) schedule(dynamic,1)
         for (j = i; j < compareArrLen + 1; j++)
         {
                 if (compareBuff[m - 1] == mainBuff[k-1] || compareBuff[m - 1] == '?' || mainBuff[m-1] == '?')
@@ -283,9 +283,9 @@ void checkMatches(char *mainBuff, int mainArrLen, char *compareBuff, int compare
                         matchArr[(k * (compareArrLen + 1)) + m] = 0;
                     }
                 }
-            #pragma omp atomic
+            //#pragma omp atomic
             m++;
-            #pragma omp atomic
+            //#pragma omp atomic
             k--;
         }
     }
